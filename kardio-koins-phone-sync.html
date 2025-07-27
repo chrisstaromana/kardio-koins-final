@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kardio Koins - Turn Your Steps Into Real Savings</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Maps JavaScript API -->
+    <script async defer 
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDrl85fcgVYqwv675K9dUd1K2lG61QUhv0&libraries=places,directions&callback=initMap">
+    </script>
+    <!-- QR Code Generator -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <!-- QR Code Scanner -->
+    <script src="https://unpkg.com/qr-scanner@1.4.2/qr-scanner.umd.min.js"></script>
+    <style>
+        #map {
+            height: 400px;
+            width: 100%;
+            border-radius: 12px;
+        }
+        .partner-marker {
+            background: #84cc16;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            height: 24px;
+            width: 24px;
+        }
+        .discount-badge {
+            background: linear-gradient(135deg, #84cc16, #65a30d);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .qr-code {
+            margin: 10px auto;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            display: inline-block;
+        }
+        .route-partner {
+            border-left: 4px solid #84cc16;
+            background: linear-gradient(90deg, #f0fdf4, #ffffff);
+        }
+        .sync-method {
+            border: 2px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 20px;
+            margin: 12px 0;
+            transition: all 0.3s;
+        }
+        .sync-method:hover {
+            border-color: #84cc16;
+            background: #f0fdf4;
+        }
+        .sync-method.recommended {
+            border-color: #84cc16;
+            background: linear-gradient(135deg, #f0fdf4, #ffffff);
+        }
+        #qrScanner {
+            width: 100%;
+            height: 300px;
+            border-radius: 12px;
+            background: #000;
+        }
+        .phone-mockup {
+            width: 200px;
+            height: 400px;
+            background: #000;
+            border-radius: 25px;
+            padding: 10px;
+            margin: 0 auto;
+            position: relative;
+        }
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="bg-lime-50 min-h-screen">
+    <div id="root">
+        <!-- Main App Container -->
+        <div class="min-h-screen bg-lime-50 p-4">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-6xl font-black text-lime-600 mb-3">Kardio Koins</h1>
+                <p class="text-xl text-gray-700 mb-2">Turn Your Steps Into Real Savings</p>
+                <p class="text-sm text-gray-600">🍁 Toronto's First Fitness Rewards Platform</p>
+            </div>
+
+            <!-- Today's Activity Card -->
+            <div class="max-w-md mx-auto mb-6">
+                <div class="bg-white rounded-3xl p-6 border-2 border-lime-200">
+                    <div class="text-center">
+                        <div class="text-5xl font-bold text-lime-500 mb-2" id="stepCount">0</div>
+                        <div class="text-gray-600 mb-4">Steps Today</div>
+                        <div class="text-2xl font-semibold mb-2" id="discountLevel">Sync your iPhone to see discounts!</div>
+                        <div class="text-sm text-gray-600" id="nextLevel">Connect your phone to unlock real rewards</div>
+                        <div class="text-xs text-gray-500 mt-2" id="lastUpdated"></div>
+                        
+                        <!-- Step Progress Bar -->
+                        <div class="mt-4">
+                            <div class="w-full bg-gray-200 rounded-full h-3">
+                                <div id="progressBar" class="bg-lime-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                <span>0</span>
+                                <span>5k</span>
+                                <span>10k</span>
+                                <span>15k+</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sync Your iPhone Section -->
+            <div class="max-w-md mx-auto mb-6" id="syncSection">
+                <div class="bg-white rounded-3xl p-6 border-2 border-lime-200">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Sync Your iPhone Health Data</h2>
+                    <p class="text-sm text-gray-600 mb-4 text-center">Choose the easiest way to get your real step count from your iPhone to this laptop:</p>
+                    
+                    <!-- Method 1: iOS Shortcuts + QR Code (Recommended) -->
+                    <div class="sync-method recommended">
+                        <div class="flex items-center mb-3">
+                            <span class="text-2xl mr-3">🔥</span>
+                            <div>
+                                <h3 class="font-bold text-lg text-lime-600">Method 1: iOS Shortcuts + QR Sync</h3>
+                                <span class="text-xs bg-lime-200 text-lime-800 px-2 py-1 rounded">RECOMMENDED</span>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-3">Set up once, then just scan a QR code daily to sync your steps!</p>
+                        
+                        <div class="space-y-2">
+                            <button onclick="showIPhoneShortcut()" class="w-full bg-blue-500 text-white py-3 rounded-xl font-semibold">
+                                📱 1. Set Up iPhone Shortcut
+                            </button>
+                            <button onclick="showQRScanner()" class="w-full bg-lime-500 text-white py-3 rounded-xl font-semibold">
+                                📷 2. Scan QR from iPhone
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Method 2: Sync URL -->
+                    <div class="sync-method">
+                        <div class="flex items-center mb-3">
+                            <span class="text-2xl mr-3">🔗</span>
+                            <h3 class="font-bold text-lg">Method 2: Share Link</h3>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-3">Send yourself a link with your step data</p>
+                        
+                        <div class="space-y-2">
+                            <button onclick="generateSyncURL()" class="w-full bg-purple-500 text-white py-3 rounded-xl font-semibold">
+                                📲 Generate Sync Link
+                            </button>
+                            <input type="url" id="syncURLInput" placeholder="Paste sync URL from your phone" 
+                                   class="w-full p-3 border border-gray-300 rounded-xl text-sm">
+                            <button onclick="processSyncURL()" class="w-full bg-green-500 text-white py-3 rounded-xl font-semibold">
+                                ✅ Use Sync Link
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Method 3: Simple Copy-Paste -->
+                    <div class="sync-method">
+                        <div class="flex items-center mb-3">
+                            <span class="text-2xl mr-3">📋</span>
+                            <h3 class="font-bold text-lg">Method 3: Copy & Paste</h3>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-3">Just copy your step count from iPhone Health app</p>
+                        
+                        <div class="space-y-2">
+                            <input type="number" id="manualStepsInput" placeholder="Paste your step count here" 
+                                   class="w-full p-3 border border-gray-300 rounded-xl text-center text-lg font-bold">
+                            <button onclick="updateManualSteps()" class="w-full bg-orange-500 text-white py-3 rounded-xl font-semibold">
+                                📱➡️💻 Sync Steps
+                            </button>
+                            <div class="text-xs text-gray-500 text-center">
+                                iPhone: Health app → Browse → Activity → Steps → Copy today's total
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QR Scanner Modal -->
+            <div id="qrScannerModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style="display: none;">
+                <div class="bg-white rounded-3xl p-6 max-w-md mx-4">
+                    <h3 class="text-xl font-bold mb-4 text-center">Scan QR Code from iPhone</h3>
+                    <div id="qrScanner"></div>
+                    <p class="text-sm text-gray-600 mt-4 text-center">Point your laptop camera at the QR code from your iPhone Shortcut</p>
+                    <button onclick="closeQRScanner()" class="w-full bg-gray-500 text-white py-3 rounded-xl font-semibold mt-4">Close Scanner</button>
+                </div>
+            </div>
+
+            <!-- iPhone Shortcut Instructions Modal -->
+            <div id="shortcutModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style="display: none;">
+                <div class="bg-white rounded-3xl p-6 max-w-md mx-4 max-h-96 overflow-y-auto">
+                    <h3 class="text-xl font-bold mb-4 text-center">iPhone Shortcut Setup</h3>
+                    
+                    <div class="space-y-4 text-sm">
+                        <div class="phone-mockup">
+                            <div class="phone-screen">
+                                <div class="text-xs mb-2">📱 iPhone</div>
+                                <div class="text-lg font-bold mb-2">Shortcuts</div>
+                                <div class="text-xs">Create QR code with steps</div>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <div class="bg-blue-50 p-3 rounded-lg">
+                                <strong>Step 1:</strong> Open Shortcuts app on iPhone
+                            </div>
+                            <div class="bg-blue-50 p-3 rounded-lg">
+                                <strong>Step 2:</strong> Tap "+" to create new shortcut
+                            </div>
+                            <div class="bg-blue-50 p-3 rounded-lg">
+                                <strong>Step 3:</strong> Add these actions:
+                                <ul class="list-disc ml-4 mt-2 text-xs">
+                                    <li>Get Health Sample → Steps → Today</li>
+                                    <li>Get Numbers from Input</li>
+                                    <li>Text → "KARDIO:[number]"</li>
+                                    <li>Generate QR Code</li>
+                                    <li>Quick Look (to display QR)</li>
+                                </ul>
+                            </div>
+                            <div class="bg-green-50 p-3 rounded-lg">
+                                <strong>Step 4:</strong> Run shortcut, then scan the QR code here!
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button onclick="closeShortcutModal()" class="w-full bg-lime-500 text-white py-3 rounded-xl font-semibold mt-4">Got it!</button>
+                </div>
+            </div>
+
+            <!-- Connected Interface (Hidden until synced) -->
+            <div id="connectedInterface" style="display: none;">
+                <!-- Route Planning Section -->
+                <div class="max-w-md mx-auto mb-6">
+                    <div class="bg-white rounded-3xl p-6 border-2 border-lime-200">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">Plan Your Savings Route</h2>
+                        
+                        <!-- From/To Inputs -->
+                        <div class="space-y-4 mb-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">From</label>
+                                <input type="text" id="fromInput" placeholder="Enter starting location in Toronto" 
+                                       class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-lime-400 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">To</label>
+                                <input type="text" id="toInput" placeholder="Enter destination in Toronto" 
+                                       class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-lime-400 focus:border-transparent">
+                            </div>
+                        </div>
+                        
+                        <button id="planRouteBtn" 
+                                class="w-full bg-lime-500 text-white py-3 px-6 rounded-xl font-semibold hover:bg-lime-600 transition-colors">
+                            Find Route with Partner Discounts
+                        </button>
+                        
+                        <p class="text-xs text-gray-500 mt-2 text-center">Using your real <span id="currentDiscountText">0%</span> discount from iPhone sync</p>
+                    </div>
+                </div>
+
+                <!-- Map Container -->
+                <div class="max-w-md mx-auto mb-6" id="mapSection" style="display: none;">
+                    <div class="bg-white rounded-3xl p-4 border-2 border-lime-200">
+                        <h3 class="text-xl font-bold text-gray-800 mb-3">Your Route & Real Discounts</h3>
+                        <div id="map"></div>
+                        
+                        <!-- Route Summary -->
+                        <div id="routeSummary" class="mt-4 p-3 bg-lime-50 rounded-xl">
+                            <div class="text-sm font-semibold text-gray-700">Route Summary</div>
+                            <div id="routeDetails" class="text-sm text-gray-600"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Partners Along Route -->
+                <div class="max-w-md mx-auto mb-6" id="routePartnersSection" style="display: none;">
+                    <div class="bg-white rounded-3xl p-6 border-2 border-lime-200">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4">Partner Discounts Along Your Route</h3>
+                        <div id="routePartnersList" class="space-y-3"></div>
+                    </div>
+                </div>
+
+                <!-- Reward Wallet -->
+                <div class="max-w-md mx-auto mb-6" id="walletSection">
+                    <div class="bg-white rounded-3xl p-6 border-2 border-lime-200">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4">Your Real Reward Wallet</h3>
+                        <div class="text-xs text-green-600 mb-3 text-center">✅ Synced from your iPhone Health data</div>
+                        <div id="availableDiscounts" class="space-y-3"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QR Code Modal for discounts -->
+            <div id="qrModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style="display: none;">
+                <div class="bg-white rounded-3xl p-6 max-w-sm mx-4">
+                    <div class="text-center">
+                        <h3 class="text-xl font-bold mb-4" id="qrTitle">Scan to Redeem</h3>
+                        <div id="qrCodeContainer" class="mb-4"></div>
+                        <p class="text-sm text-gray-600 mb-4">Show this QR code to the cashier to apply your real discount</p>
+                        <button onclick="closeQRModal()" class="w-full bg-lime-500 text-white py-3 rounded-xl font-semibold">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let map;
+        let directionsService;
+        let directionsRenderer;
+        let stepCount = 0;
+        let currentDiscountLevel = 0;
+        let currentRoute = null;
+        let routePartners = [];
+        let qrScanner = null;
+
+        // Toronto partner businesses
+        const torontoPartners = [
+            {
+                name: "Balzac's Coffee",
+                category: "Coffee & Food",
+                address: "Union Station, 65 Front St W",
+                coords: { lat: 43.6447, lng: -79.3806 },
+                maxDiscount: 15,
+                description: "Premium coffee and healthy snacks"
+            },
+            {
+                name: "GoodLife Fitness",
+                category: "Fitness & Wellness", 
+                address: "100 King St W",
+                coords: { lat: 43.6481, lng: -79.3803 },
+                maxDiscount: 20,
+                description: "Complete fitness facilities"
+            },
+            {
+                name: "Loblaws",
+                category: "Groceries & Health",
+                address: "60 Carlton St (Maple Leaf Gardens)",
+                coords: { lat: 43.6629, lng: -79.3957 },
+                maxDiscount: 10,
+                description: "Fresh groceries and health products"
+            },
+            {
+                name: "Freshii",
+                category: "Healthy Food",
+                address: "180 Bay St",
+                coords: { lat: 43.6501, lng: -79.3821 },
+                maxDiscount: 15,
+                description: "Fresh, healthy meals"
+            },
+            {
+                name: "Running Room",
+                category: "Athletic Gear",
+                address: "2 Bloor St E",
+                coords: { lat: 43.6710, lng: -79.3860 },
+                maxDiscount: 20,
+                description: "Running gear and accessories"
+            },
+            {
+                name: "Booster Juice",
+                category: "Health Drinks",
+                address: "220 Yonge St (Eaton Centre)",
+                coords: { lat: 43.6544, lng: -79.3807 },
+                maxDiscount: 12,
+                description: "Fresh smoothies and protein drinks"
+            }
+        ];
+
+        // Step to discount conversion
+        function calculateDiscountLevel(steps) {
+            if (steps >= 15000) return 20;
+            if (steps >= 10000) return 15;
+            if (steps >= 8000) return 10;
+            if (steps >= 5000) return 5;
+            return 0;
+        }
+
+        // Update steps from sync
+        function updateSteps(steps, source = 'manual') {
+            stepCount = parseInt(steps);
+            currentDiscountLevel = calculateDiscountLevel(stepCount);
+            
+            updateStepDisplay();
+            showConnectedInterface();
+            
+            // Save to localStorage
+            localStorage.setItem('kardioKoinsSteps', stepCount);
+            localStorage.setItem('kardioKoinsLastUpdate', new Date().toISOString());
+            localStorage.setItem('kardioKoinsSource', source);
+            
+            return true;
+        }
+
+        // Load saved steps
+        function loadSavedSteps() {
+            const savedSteps = localStorage.getItem('kardioKoinsSteps');
+            const lastUpdate = localStorage.getItem('kardioKoinsLastUpdate');
+            const source = localStorage.getItem('kardioKoinsSource');
+            
+            if (savedSteps && lastUpdate) {
+                const lastUpdateDate = new Date(lastUpdate);
+                const today = new Date();
+                
+                if (lastUpdateDate.toDateString() === today.toDateString()) {
+                    updateSteps(savedSteps, source || 'saved');
+                    document.getElementById('lastUpdated').textContent = 
+                        `Last synced: ${lastUpdateDate.toLocaleTimeString()} from iPhone`;
+                }
+            }
+        }
+
+        // Manual step update
+        function updateManualSteps() {
+            const input = document.getElementById('manualStepsInput');
+            const steps = parseInt(input.value);
+            
+            if (isNaN(steps) || steps < 0) {
+                alert('Please enter a valid number of steps');
+                return;
+            }
+            
+            if (updateSteps(steps, 'iPhone-manual')) {
+                alert(`✅ iPhone Health Data Synced!\n\nSteps: ${steps.toLocaleString()}\nDiscount Level: ${calculateDiscountLevel(steps)}%\n\nYour real fitness data is now powering your discounts!`);
+            }
+        }
+
+        // Show iPhone shortcut instructions
+        function showIPhoneShortcut() {
+            document.getElementById('shortcutModal').style.display = 'flex';
+        }
+
+        // Close shortcut modal
+        function closeShortcutModal() {
+            document.getElementById('shortcutModal').style.display = 'none';
+        }
+
+        // Show QR scanner
+        function showQRScanner() {
+            document.getElementById('qrScannerModal').style.display = 'flex';
+            initQRScanner();
+        }
+
+        // Initialize QR scanner
+        function initQRScanner() {
+            const videoElement = document.getElementById('qrScanner');
+            
+            if (qrScanner) {
+                qrScanner.destroy();
+            }
+            
+            qrScanner = new QrScanner(videoElement, result => {
+                console.log('QR Code detected:', result);
+                processQRResult(result);
+            });
+            
+            qrScanner.start().catch(err => {
+                console.error('QR Scanner error:', err);
+                alert('Camera access needed for QR scanning. Please allow camera permission and try again.');
+            });
+        }
+
+        // Process QR scan result
+        function processQRResult(result) {
+            // Look for KARDIO: format
+            const kardioMatch = result.match(/KARDIO:(\d+)/i);
+            
+            if (kardioMatch) {
+                const steps = parseInt(kardioMatch[1]);
+                closeQRScanner();
+                
+                if (updateSteps(steps, 'iPhone-QR')) {
+                    alert(`🎉 QR Sync Successful!\n\nYour iPhone Health Data:\nSteps: ${steps.toLocaleString()}\nDiscount: ${calculateDiscountLevel(steps)}%\n\nReal fitness rewards unlocked!`);
+                }
+            } else {
+                alert('QR code not recognized. Make sure you\'re scanning the QR code from your iPhone Shortcut that contains your step data.');
+            }
+        }
+
+        // Close QR scanner
+        function closeQRScanner() {
+            if (qrScanner) {
+                qrScanner.destroy();
+                qrScanner = null;
+            }
+            document.getElementById('qrScannerModal').style.display = 'none';
+        }
+
+        // Generate sync URL
+        function generateSyncURL() {
+            const baseURL = window.location.href.split('?')[0];
+            const syncURL = `${baseURL}?sync=true`;
+            
+            // Copy to clipboard
+            navigator.clipboard.writeText(syncURL).then(() => {
+                alert(`📲 Sync URL copied to clipboard!\n\nNow on your iPhone:\n1. Open Health app\n2. Copy your step count\n3. Open this URL: ${syncURL}\n4. Paste your steps in the sync box\n\nOr just paste the URL here after adding your steps to it.`);
+            }).catch(() => {
+                // Fallback if clipboard doesn't work
+                prompt('Copy this sync URL and open it on your iPhone:', syncURL);
+            });
+        }
+
+        // Process sync URL
+        function processSyncURL() {
+            const urlInput = document.getElementById('syncURLInput');
+            const url = urlInput.value;
+            
+            if (!url) {
+                alert('Please paste the sync URL from your iPhone');
+                return;
+            }
+            
+            try {
+                const urlObj = new URL(url);
+                const steps = urlObj.searchParams.get('steps');
+                
+                if (steps) {
+                    if (updateSteps(parseInt(steps), 'iPhone-URL')) {
+                        alert(`🔗 URL Sync Successful!\n\nSteps from iPhone: ${steps}\nDiscount: ${calculateDiscountLevel(parseInt(steps))}%`);
+                    }
+                } else {
+                    alert('No step data found in URL. Make sure you include your steps in the sync URL.');
+                }
+            } catch (e) {
+                alert('Invalid sync URL format. Please check the URL and try again.');
+            }
+        }
+
+        // Update step display
+        function updateStepDisplay() {
+            document.getElementById('stepCount').textContent = stepCount.toLocaleString();
+            
+            if (currentDiscountLevel > 0) {
+                document.getElementById('discountLevel').innerHTML = `
+                    <span class="text-lime-600">${currentDiscountLevel}% OFF</span> 
+                    <span class="text-gray-600">from your real steps!</span>
+                `;
+            } else {
+                document.getElementById('discountLevel').textContent = "Keep walking to unlock discounts!";
+            }
+            
+            // Update next level message
+            const nextMilestone = getNextMilestone(stepCount);
+            if (nextMilestone) {
+                const stepsNeeded = nextMilestone.steps - stepCount;
+                document.getElementById('nextLevel').textContent = 
+                    `${stepsNeeded.toLocaleString()} more steps for ${nextMilestone.discount}% off`;
+            } else {
+                document.getElementById('nextLevel').textContent = "Maximum discount level reached! 🎉";
+            }
+            
+            // Update progress bar
+            const progress = Math.min((stepCount / 15000) * 100, 100);
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
+
+        // Get next milestone
+        function getNextMilestone(currentSteps) {
+            const milestones = [
+                { steps: 5000, discount: 5 },
+                { steps: 8000, discount: 10 },
+                { steps: 10000, discount: 15 },
+                { steps: 15000, discount: 20 }
+            ];
+            
+            return milestones.find(milestone => milestone.steps > currentSteps);
+        }
+
+        // Show connected interface
+        function showConnectedInterface() {
+            document.getElementById('syncSection').style.display = 'none';
+            document.getElementById('connectedInterface').style.display = 'block';
+            
+            updateCurrentDiscountText();
+            updateRewardWallet();
+            setupAutocomplete();
+        }
+
+        // Update current discount text
+        function updateCurrentDiscountText() {
+            const element = document.getElementById('currentDiscountText');
+            if (element) {
+                element.textContent = `${currentDiscountLevel}%`;
+            }
+        }
+
+        // Update reward wallet
+        function updateRewardWallet() {
+            const walletContainer = document.getElementById('availableDiscounts');
+            
+            if (currentDiscountLevel === 0) {
+                walletContainer.innerHTML = `
+                    <div class="text-center py-6 text-gray-500">
+                        <p class="text-lg mb-2">👟 Keep walking!</p>
+                        <p>Take 5,000 steps to unlock 5% off at Toronto partners</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const availableOffers = torontoPartners
+                .filter(partner => currentDiscountLevel > 0)
+                .map(partner => {
+                    const availableDiscount = Math.min(currentDiscountLevel, partner.maxDiscount);
+                    return `
+                        <div class="flex justify-between items-center p-4 bg-lime-50 rounded-xl border border-lime-200">
+                            <div>
+                                <div class="font-semibold text-gray-800">${partner.name}</div>
+                                <div class="text-sm text-gray-600">${partner.category}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="discount-badge">${availableDiscount}% OFF</div>
+                                <button onclick="showQRCode('${partner.name}', ${availableDiscount})" 
+                                        class="text-xs text-lime-600 hover:text-lime-700 mt-1">
+                                    Get QR Code
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            walletContainer.innerHTML = availableOffers;
+        }
+
+        // Setup autocomplete
+        function setupAutocomplete() {
+            if (!map) return;
+            
+            const fromInput = document.getElementById('fromInput');
+            const toInput = document.getElementById('toInput');
+
+            const options = {
+                componentRestrictions: { country: 'ca' },
+                bounds: new google.maps.LatLngBounds(
+                    new google.maps.LatLng(43.581006, -79.639219),
+                    new google.maps.LatLng(43.855469, -79.115372)
+                ),
+                strictBounds: false
+            };
+
+            const fromAutocomplete = new google.maps.places.Autocomplete(fromInput, options);
+            const toAutocomplete = new google.maps.places.Autocomplete(toInput, options);
+        }
+
+        // Plan route
+        function planRoute() {
+            const fromLocation = document.getElementById('fromInput').value;
+            const toLocation = document.getElementById('toInput').value;
+
+            if (!fromLocation || !toLocation) {
+                alert('Please enter both starting location and destination');
+                return;
+            }
+
+            const request = {
+                origin: fromLocation,
+                destination: toLocation,
+                travelMode: google.maps.TravelMode.WALKING,
+                unitSystem: google.maps.UnitSystem.METRIC,
+            };
+
+            directionsService.route(request, (result, status) => {
+                if (status === 'OK') {
+                    directionsRenderer.setDirections(result);
+                    currentRoute = result;
+                    
+                    document.getElementById('mapSection').style.display = 'block';
+                    document.getElementById('routePartnersSection').style.display = 'block';
+                    
+                    updateRouteSummary(result);
+                    findPartnersAlongRoute(result);
+                } else {
+                    alert('Could not display directions: ' + status);
+                }
+            });
+        }
+
+        // Initialize Google Map
+        function initMap() {
+            const toronto = { lat: 43.6532, lng: -79.3832 };
+            
+            map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 13,
+                center: toronto
+            });
+
+            directionsService = new google.maps.DirectionsService();
+            directionsRenderer = new google.maps.DirectionsRenderer({
+                suppressMarkers: false,
+                polylineOptions: {
+                    strokeColor: "#84cc16",
+                    strokeWeight: 4
+                }
+            });
+            directionsRenderer.setMap(map);
+        }
+
+        // Show QR Code for redemption
+        function showQRCode(partnerName, discount) {
+            const qrModal = document.getElementById('qrModal');
+            const qrContainer = document.getElementById('qrCodeContainer');
+            const qrTitle = document.getElementById('qrTitle');
+            
+            qrTitle.textContent = `${discount}% off at ${partnerName}`;
+            
+            // Include step verification in QR code
+            const qrData = `KARDIO-REDEEM-${Date.now()}-${partnerName.replace(/\s+/g, '')}-${discount}PCT-${stepCount}STEPS-VERIFIED`;
+            const qr = qrcode(0, 'M');
+            qr.addData(qrData);
+            qr.make();
+            
+            qrContainer.innerHTML = `<div class="qr-code">${qr.createImgTag(4)}</div>`;
+            qrModal.style.display = 'flex';
+        }
+
+        // Close QR modal
+        function closeQRModal() {
+            document.getElementById('qrModal').style.display = 'none';
+        }
+
+        // Check for sync parameter in URL
+        function checkSyncURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const syncMode = urlParams.get('sync');
+            const steps = urlParams.get('steps');
+            
+            if (syncMode === 'true' && steps) {
+                updateSteps(parseInt(steps), 'iPhone-URL');
+                alert(`🔗 Auto-synced from iPhone!\n\nSteps: ${steps}\nDiscount: ${calculateDiscountLevel(parseInt(steps))}%`);
+            }
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSavedSteps();
+            checkSyncURL();
+            document.getElementById('planRouteBtn').addEventListener('click', planRoute);
+        });
+
+        // Make functions globally available
+        window.initMap = initMap;
+        window.showIPhoneShortcut = showIPhoneShortcut;
+        window.closeShortcutModal = closeShortcutModal;
+        window.showQRScanner = showQRScanner;
+        window.closeQRScanner = closeQRScanner;
+        window.generateSyncURL = generateSyncURL;
+        window.processSyncURL = processSyncURL;
+        window.updateManualSteps = updateManualSteps;
+        window.showQRCode = showQRCode;
+        window.closeQRModal = closeQRModal;
+
+        // Simplified route functions for space
+        function updateRouteSummary(result) {
+            const route = result.routes[0];
+            const leg = route.legs[0];
+            document.getElementById('routeDetails').innerHTML = `
+                Distance: ${leg.distance.text} | Time: ${leg.duration.text} | Partners: ${routePartners.length}
+            `;
+        }
+
+        function findPartnersAlongRoute(result) {
+            // Simplified - show all partners for demo
+            routePartners = torontoPartners.slice(0, 3);
+            displayRoutePartners();
+        }
+
+        function displayRoutePartners() {
+            const container = document.getElementById('routePartnersList');
+            const partnersHTML = routePartners.map(partner => {
+                const availableDiscount = Math.min(currentDiscountLevel, partner.maxDiscount);
+                return `
+                    <div class="route-partner p-4 rounded-xl">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <div class="font-semibold">${partner.name}</div>
+                                <div class="text-sm text-gray-600">${partner.category}</div>
+                            </div>
+                            <div class="text-right">
+                                ${availableDiscount > 0 ? 
+                                    `<div class="discount-badge">${availableDiscount}% OFF</div>` :
+                                    `<div class="text-xs text-gray-500">Need more steps</div>`
+                                }
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            container.innerHTML = partnersHTML;
+        }
+    </script>
+</body>
+</html>

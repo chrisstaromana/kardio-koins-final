@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kardio Koins - Turn Your Steps Into Real Savings</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Maps JavaScript API -->
+    <script async defer 
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDrl85fcgVYqwv675K9dUd1K2lG61QUhv0&libraries=places,directions&callback=initMap">
+    </script>
+    <!-- QR Code Generator -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <style>
+        #map {
+            height: 300px;
+            width: 100%;
+            border-radius: 12px;
+        }
+        .partner-marker {
+            background: #84cc16;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            height: 24px;
+            width: 24px;
+        }
+        .discount-badge {
+            background: linear-gradient(135deg, #84cc16, #65a30d);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .qr-code {
+            margin: 10px auto;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body class="bg-lime-50 min-h-screen">
+    <div id="root">
+        <!-- Main App Container -->
+        <div class="min-h-screen bg-lime-50 p-4">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-6xl font-black text-lime-600 mb-3">Kardio Koins</h1>
+                <p class="text-xl text-gray-700 mb-2">Turn Your Steps Into Real Savings</p>
+                <p class="text-sm text-gray-600">🍁 Toronto's First Fitness Rewards Platform</p>
+            </div>
+
+            <!-- Today's Activity Card -->
+            <div class="max-w-md mx-auto mb-6">
+                <div class="bg-white rounded-3xl p-6 border-2 border-lime-200">
+                    <div class="text-center">
+                        <div class="text-5xl font-bold text-lime-500 mb-2" id="stepCount">0</div>
+                        <div class="text-gray-600 mb-4">Steps Today</div>
+                        <div class="text-2xl font-semibold mb-2" id="discountLevel">Connect to see your discount!</div>
+                        <div class="text-sm text-gray-600" id="nextLevel">Take 5,000 steps to unlock 5% off</div>
+                        
+                        <!-- Step Progress Bar -->
+                        <div class="mt-4">
+                            <div class="w-full bg-gray-200 rounded-full h-3">
+                                <div id="progressBar" class="bg-lime-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                <span>0</span>
+                                <span>5k</span>
+                                <span>10k</span>
+                                <span>15k+</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Connect Apps Section -->
+            <div class="max-w-md mx-auto mb-6" id="connectSection">
+                <div class="bg-white rounded-3xl p-6 border-2 border-lime-200">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Connect Your Fitness Apps</h2>
+                    
+                    <div class="space-y-3">
+                        <button class="w-full flex items-center justify-between p-4 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors" onclick="connectApp('apple')">
+                            <div class="flex items-center">
+                                <span class="text-2xl mr-3">🍎</span>
+                                <span class="font-semibold">Apple Health</span>
+                            </div>
+                            <span class="text-lime-400">Connect</span>
+                        </button>
+                        
+                        <button class="w-full flex items-center justify-between p-4 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-colors" onclick="connectApp('strava')">
+                            <div class="flex items-center">
+                                <span class="text-2xl mr-3">🚴</span>
+                                <span class="font-semibold">Strava</span>
+                            </div>
+                            <span class="text-lime-400">Connect</span>
+                        </button>
+                        
+                        <button class="w-full flex items-center justify-between p-4 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors" onclick="connectApp('fitbit')">
+                            <div class="flex items-center">
+                                <span class="text-2xl mr-3">⌚</span>
+                                <span class="font-semibold">Fitbit</span>
+                            </div>
+                            <span class="text-lime-400">Connect</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Smart Spending Map -->
+            <div class="max-w-md mx-auto mb-6" id="mapSection" style="display: none;">
+                <div class="bg-white rounded-3xl p-4 border-2 border-lime-200">
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">Smart Spending Map</h3>
+                    <p class="text-sm text-gray-600 mb-3">Nearby Toronto partners where you can use your discounts</p>
+                    <div id="map"></div>
+                </div>
+            </div>
+
+            <!-- Reward Wallet -->
+            <div class="max-w-md mx-auto mb-6" id="walletSection" style="display: none;">
+                <div class="bg-white rounded-3xl p-6 border-2 border-lime-200">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Your Reward Wallet</h3>
+                    <div id="availableDiscounts" class="space-y-3">
+                        <!-- Discounts will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Toronto Partner Businesses -->
+            <div class="max-w-md mx-auto mb-6" id="partnersSection" style="display: none;">
+                <div class="bg-white rounded-3xl p-6 border-2 border-lime-200">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Toronto Partners</h3>
+                    <div id="partnersList" class="space-y-3">
+                        <!-- Partners will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- QR Code Modal -->
+            <div id="qrModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style="display: none;">
+                <div class="bg-white rounded-3xl p-6 max-w-sm mx-4">
+                    <div class="text-center">
+                        <h3 class="text-xl font-bold mb-4" id="qrTitle">Scan to Redeem</h3>
+                        <div id="qrCodeContainer" class="mb-4"></div>
+                        <p class="text-sm text-gray-600 mb-4" id="qrInstructions">Show this QR code to the cashier to apply your discount</p>
+                        <button onclick="closeQRModal()" class="w-full bg-lime-500 text-white py-3 rounded-xl font-semibold">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let map;
+        let stepCount = 0;
+        let currentDiscountLevel = 0;
+        let connectedApp = null;
+
+        // Toronto partner businesses (real businesses you'd partner with)
+        const torontoPartners = [
+            {
+                name: "Balzac's Coffee",
+                category: "Coffee & Food",
+                address: "Multiple Toronto Locations",
+                coords: { lat: 43.6532, lng: -79.3832 },
+                maxDiscount: 15,
+                description: "Premium coffee and healthy snacks"
+            },
+            {
+                name: "GoodLife Fitness",
+                category: "Fitness & Wellness",
+                address: "King & Bay",
+                coords: { lat: 43.6481, lng: -79.3803 },
+                maxDiscount: 20,
+                description: "Complete fitness facilities"
+            },
+            {
+                name: "Loblaws",
+                category: "Groceries & Health",
+                address: "Maple Leaf Gardens",
+                coords: { lat: 43.6629, lng: -79.3957 },
+                maxDiscount: 10,
+                description: "Fresh groceries and health products"
+            },
+            {
+                name: "Freshii",
+                category: "Healthy Food",
+                address: "Financial District",
+                coords: { lat: 43.6501, lng: -79.3821 },
+                maxDiscount: 15,
+                description: "Fresh, healthy meals"
+            },
+            {
+                name: "Running Room",
+                category: "Athletic Gear",
+                address: "Yonge & Bloor",
+                coords: { lat: 43.6710, lng: -79.3860 },
+                maxDiscount: 20,
+                description: "Running gear and accessories"
+            },
+            {
+                name: "Booster Juice",
+                category: "Health Drinks",
+                address: "Eaton Centre",
+                coords: { lat: 43.6544, lng: -79.3807 },
+                maxDiscount: 12,
+                description: "Fresh smoothies and protein drinks"
+            }
+        ];
+
+        // Step to discount conversion (your actual business model)
+        function calculateDiscountLevel(steps) {
+            if (steps >= 15000) return 20;
+            if (steps >= 10000) return 15;
+            if (steps >= 8000) return 10;
+            if (steps >= 5000) return 5;
+            return 0;
+        }
+
+        // Connect fitness app simulation
+        function connectApp(appName) {
+            connectedApp = appName;
+            
+            // Simulate connected data
+            stepCount = 3000 + Math.floor(Math.random() * 12000); // Random steps 3k-15k
+            currentDiscountLevel = calculateDiscountLevel(stepCount);
+            
+            updateStepDisplay();
+            showConnectedInterface();
+            
+            // Show success message
+            const appNames = {
+                'apple': 'Apple Health',
+                'strava': 'Strava',
+                'fitbit': 'Fitbit'
+            };
+            alert(`✅ Connected to ${appNames[appName]}!\n\nYour today's steps: ${stepCount.toLocaleString()}\nDiscount level: ${currentDiscountLevel}%`);
+        }
+
+        // Update step display and progress
+        function updateStepDisplay() {
+            document.getElementById('stepCount').textContent = stepCount.toLocaleString();
+            
+            if (currentDiscountLevel > 0) {
+                document.getElementById('discountLevel').innerHTML = `
+                    <span class="text-lime-600">${currentDiscountLevel}% OFF</span> 
+                    <span class="text-gray-600">available today!</span>
+                `;
+            } else {
+                document.getElementById('discountLevel').textContent = "Keep walking to unlock discounts!";
+            }
+            
+            // Update next level message
+            const nextMilestone = getNextMilestone(stepCount);
+            if (nextMilestone) {
+                const stepsNeeded = nextMilestone.steps - stepCount;
+                document.getElementById('nextLevel').textContent = 
+                    `${stepsNeeded.toLocaleString()} more steps for ${nextMilestone.discount}% off`;
+            } else {
+                document.getElementById('nextLevel').textContent = "You've reached the maximum discount level! 🎉";
+            }
+            
+            // Update progress bar
+            const progress = Math.min((stepCount / 15000) * 100, 100);
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
+
+        // Get next discount milestone
+        function getNextMilestone(currentSteps) {
+            const milestones = [
+                { steps: 5000, discount: 5 },
+                { steps: 8000, discount: 10 },
+                { steps: 10000, discount: 15 },
+                { steps: 15000, discount: 20 }
+            ];
+            
+            return milestones.find(milestone => milestone.steps > currentSteps);
+        }
+
+        // Show interface after connecting
+        function showConnectedInterface() {
+            document.getElementById('connectSection').style.display = 'none';
+            document.getElementById('mapSection').style.display = 'block';
+            document.getElementById('walletSection').style.display = 'block';
+            document.getElementById('partnersSection').style.display = 'block';
+            
+            initializeMap();
+            updateRewardWallet();
+            displayPartners();
+        }
+
+        // Initialize Google Map centered on Toronto
+        function initializeMap() {
+            const toronto = { lat: 43.6532, lng: -79.3832 };
+            
+            map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 13,
+                center: toronto,
+                styles: [
+                    {
+                        featureType: "poi",
+                        elementType: "geometry",
+                        stylers: [{ color: "#f5f5f5" }]
+                    }
+                ]
+            });
+
+            // Add partner markers
+            torontoPartners.forEach(partner => {
+                const availableDiscount = Math.min(currentDiscountLevel, partner.maxDiscount);
+                
+                const marker = new google.maps.Marker({
+                    position: partner.coords,
+                    map: map,
+                    title: partner.name,
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 10,
+                        fillColor: availableDiscount > 0 ? '#84cc16' : '#9ca3af',
+                        fillOpacity: 1,
+                        strokeColor: '#ffffff',
+                        strokeWeight: 2
+                    }
+                });
+
+                const infoWindow = new google.maps.InfoWindow({
+                    content: `
+                        <div class="p-3">
+                            <h3 class="font-bold text-lg">${partner.name}</h3>
+                            <p class="text-sm text-gray-600 mb-2">${partner.description}</p>
+                            <p class="text-lime-600 font-semibold mb-2">
+                                ${availableDiscount > 0 ? `${availableDiscount}% discount available!` : 'Walk more to unlock discounts here'}
+                            </p>
+                            <p class="text-xs text-gray-500">${partner.address}</p>
+                            ${availableDiscount > 0 ? 
+                                `<button onclick="showQRCode('${partner.name}', ${availableDiscount})" 
+                                         class="mt-2 bg-lime-500 text-white px-4 py-2 rounded-lg text-sm font-semibold">
+                                    Get QR Code
+                                 </button>` : ''}
+                        </div>
+                    `
+                });
+
+                marker.addListener('click', () => {
+                    infoWindow.open(map, marker);
+                });
+            });
+        }
+
+        // Update reward wallet
+        function updateRewardWallet() {
+            const walletContainer = document.getElementById('availableDiscounts');
+            
+            if (currentDiscountLevel === 0) {
+                walletContainer.innerHTML = `
+                    <div class="text-center py-6 text-gray-500">
+                        <p class="text-lg mb-2">👟 Keep walking!</p>
+                        <p>Reach 5,000 steps to unlock your first discount</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const availableOffers = torontoPartners
+                .filter(partner => currentDiscountLevel > 0)
+                .map(partner => {
+                    const availableDiscount = Math.min(currentDiscountLevel, partner.maxDiscount);
+                    return `
+                        <div class="flex justify-between items-center p-4 bg-lime-50 rounded-xl border border-lime-200">
+                            <div>
+                                <div class="font-semibold text-gray-800">${partner.name}</div>
+                                <div class="text-sm text-gray-600">${partner.category}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="discount-badge">${availableDiscount}% OFF</div>
+                                <button onclick="showQRCode('${partner.name}', ${availableDiscount})" 
+                                        class="text-xs text-lime-600 hover:text-lime-700 mt-1">
+                                    Get QR Code
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            walletContainer.innerHTML = availableOffers;
+        }
+
+        // Display partners list
+        function displayPartners() {
+            const partnersContainer = document.getElementById('partnersList');
+            
+            const partnersHTML = torontoPartners.map(partner => {
+                const availableDiscount = Math.min(currentDiscountLevel, partner.maxDiscount);
+                return `
+                    <div class="flex justify-between items-center p-4 border border-gray-200 rounded-xl">
+                        <div>
+                            <div class="font-semibold text-gray-800">${partner.name}</div>
+                            <div class="text-sm text-gray-600">${partner.category}</div>
+                            <div class="text-xs text-gray-500">${partner.address}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm font-semibold text-gray-700">Up to ${partner.maxDiscount}% off</div>
+                            ${availableDiscount > 0 ? 
+                                `<div class="discount-badge mt-1">${availableDiscount}% available</div>` :
+                                `<div class="text-xs text-gray-500 mt-1">Walk more to unlock</div>`
+                            }
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            partnersContainer.innerHTML = partnersHTML;
+        }
+
+        // Show QR Code for redemption
+        function showQRCode(partnerName, discount) {
+            const qrModal = document.getElementById('qrModal');
+            const qrContainer = document.getElementById('qrCodeContainer');
+            const qrTitle = document.getElementById('qrTitle');
+            
+            qrTitle.textContent = `${discount}% off at ${partnerName}`;
+            
+            // Generate QR Code (in real app, this would be a unique redemption code)
+            const qrData = `KARDIO-${Date.now()}-${partnerName.replace(/\s+/g, '')}-${discount}PCT`;
+            const qr = qrcode(0, 'M');
+            qr.addData(qrData);
+            qr.make();
+            
+            qrContainer.innerHTML = `<div class="qr-code">${qr.createImgTag(4)}</div>`;
+            qrModal.style.display = 'flex';
+        }
+
+        // Close QR Modal
+        function closeQRModal() {
+            document.getElementById('qrModal').style.display = 'none';
+        }
+
+        // Initialize the app
+        function initMap() {
+            // Google Maps callback - map will be initialized when user connects an app
+        }
+
+        // Make functions globally available
+        window.initMap = initMap;
+        window.connectApp = connectApp;
+        window.showQRCode = showQRCode;
+        window.closeQRModal = closeQRModal;
+    </script>
+</body>
+</html>

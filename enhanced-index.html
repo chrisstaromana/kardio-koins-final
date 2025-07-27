@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kardio Koins - Turn Your Steps Into Savings</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- HealthKit JavaScript Library -->
+    <script src="https://cdn.jsdelivr.net/npm/healthkit-to-js@1.0.0/healthkit.min.js"></script>
+    <!-- Google Maps JavaScript API -->
+    <script async defer 
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDrl85fcgVYqwv675K9dUd1K2lG61QUhv0&libraries=places,directions&callback=initMap">
+    </script>
+    <style>
+        #map {
+            height: 400px;
+            width: 100%;
+            border-radius: 12px;
+        }
+        .store-marker {
+            background: #84cc16;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            height: 20px;
+            width: 20px;
+        }
+    </style>
+</head>
+<body class="bg-lime-50 min-h-screen">
+    <div id="root">
+        <!-- Main App Container -->
+        <div class="min-h-screen bg-lime-50 p-4">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-6xl font-black text-lime-600 mb-3">Kardio Koins</h1>
+                <p class="text-xl text-gray-700">Turn Your Steps Into Savings</p>
+            </div>
+
+            <!-- Step Counter Card -->
+            <div class="max-w-md mx-auto mb-6">
+                <div class="bg-white rounded-3xl p-6 border-2 border-lime-200">
+                    <div class="text-center">
+                        <div class="text-5xl font-bold text-lime-500 mb-2" id="stepCount">0</div>
+                        <div class="text-gray-600 mb-4">Steps Today</div>
+                        <div class="text-2xl font-semibold text-lime-600" id="coinCount">0 Koins</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Route Planning Section -->
+            <div class="max-w-md mx-auto mb-6">
+                <div class="bg-white rounded-3xl p-6 border-2 border-lime-200">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Plan Your Route</h2>
+                    
+                    <!-- From/To Inputs -->
+                    <div class="space-y-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">From</label>
+                            <input type="text" id="fromInput" placeholder="Enter starting location" 
+                                   class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-lime-400 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">To</label>
+                            <input type="text" id="toInput" placeholder="Enter destination" 
+                                   class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-lime-400 focus:border-transparent">
+                        </div>
+                    </div>
+                    
+                    <!-- Plan Route Button -->
+                    <button id="planRouteBtn" 
+                            class="w-full bg-lime-500 text-white py-3 px-6 rounded-xl font-semibold hover:bg-lime-600 transition-colors">
+                        Find Route & Nearby Stores
+                    </button>
+                </div>
+            </div>
+
+            <!-- Map Container -->
+            <div class="max-w-md mx-auto mb-6">
+                <div class="bg-white rounded-3xl p-4 border-2 border-lime-200">
+                    <div id="map"></div>
+                </div>
+            </div>
+
+            <!-- Nearby Stores -->
+            <div class="max-w-md mx-auto mb-6">
+                <div class="bg-white rounded-3xl p-6 border-2 border-lime-200">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Nearby Stores & Discounts</h3>
+                    <div id="storesList" class="space-y-3">
+                        <!-- Stores will be populated here -->
+                        <div class="text-gray-500 text-center py-4">
+                            Plan a route to see nearby stores with discounts!
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Connect Health Data Button -->
+            <div class="max-w-md mx-auto text-center">
+                <button id="connectHealthBtn" 
+                        class="bg-lime-400 text-black py-4 px-8 rounded-2xl font-bold text-lg hover:bg-lime-300 transition-colors border-2 border-black">
+                    Connect Health Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let map;
+        let directionsService;
+        let directionsRenderer;
+        let placesService;
+        let stepCount = 0;
+        let koins = 0;
+
+        // Sample store data (in a real app, this would come from your backend)
+        const sampleStores = [
+            { name: "Nike Store", discount: "15%", type: "Athletic Wear", coords: { lat: 37.7749, lng: -122.4194 } },
+            { name: "Whole Foods", discount: "10%", type: "Healthy Food", coords: { lat: 37.7849, lng: -122.4094 } },
+            { name: "Lululemon", discount: "20%", type: "Fitness Gear", coords: { lat: 37.7949, lng: -122.3994 } },
+            { name: "Smoothie King", discount: "25%", type: "Health Drinks", coords: { lat: 37.7649, lng: -122.4294 } }
+        ];
+
+        // Initialize Google Map
+        function initMap() {
+            // Default to San Francisco
+            const defaultLocation = { lat: 37.7749, lng: -122.4194 };
+            
+            map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 13,
+                center: defaultLocation,
+                styles: [
+                    {
+                        featureType: "poi",
+                        elementType: "geometry",
+                        stylers: [{ color: "#f5f5f5" }]
+                    },
+                    {
+                        featureType: "road",
+                        elementType: "geometry",
+                        stylers: [{ color: "#ffffff" }]
+                    }
+                ]
+            });
+
+            directionsService = new google.maps.DirectionsService();
+            directionsRenderer = new google.maps.DirectionsRenderer({
+                suppressMarkers: false,
+                polylineOptions: {
+                    strokeColor: "#84cc16",
+                    strokeWeight: 4
+                }
+            });
+            directionsRenderer.setMap(map);
+            placesService = new google.maps.places.PlacesService(map);
+
+            // Set up autocomplete for inputs
+            setupAutocomplete();
+        }
+
+        // Setup Google Places Autocomplete
+        function setupAutocomplete() {
+            const fromInput = document.getElementById('fromInput');
+            const toInput = document.getElementById('toInput');
+
+            const fromAutocomplete = new google.maps.places.Autocomplete(fromInput);
+            const toAutocomplete = new google.maps.places.Autocomplete(toInput);
+
+            fromAutocomplete.setFields(['place_id', 'geometry', 'name']);
+            toAutocomplete.setFields(['place_id', 'geometry', 'name']);
+        }
+
+        // Calculate route and find nearby stores
+        function planRoute() {
+            const fromLocation = document.getElementById('fromInput').value;
+            const toLocation = document.getElementById('toInput').value;
+
+            if (!fromLocation || !toLocation) {
+                alert('Please enter both starting location and destination');
+                return;
+            }
+
+            const request = {
+                origin: fromLocation,
+                destination: toLocation,
+                travelMode: google.maps.TravelMode.WALKING,
+                unitSystem: google.maps.UnitSystem.METRIC,
+            };
+
+            directionsService.route(request, (result, status) => {
+                if (status === 'OK') {
+                    directionsRenderer.setDirections(result);
+                    
+                    // Calculate estimated steps
+                    const route = result.routes[0];
+                    const distance = route.legs[0].distance.value; // in meters
+                    const estimatedSteps = Math.round(distance * 1.3); // rough conversion
+                    
+                    // Find nearby stores along the route
+                    findNearbyStores(route);
+                    
+                    // Update step estimation
+                    updateStepEstimation(estimatedSteps);
+                } else {
+                    alert('Could not display directions: ' + status);
+                }
+            });
+        }
+
+        // Find stores near the route
+        function findNearbyStores(route) {
+            // In a real implementation, you'd search for actual places
+            // For now, we'll use sample data and filter based on proximity to route
+            const routeBounds = route.bounds;
+            const nearbyStores = sampleStores.filter(store => 
+                routeBounds.contains(new google.maps.LatLng(store.coords.lat, store.coords.lng))
+            );
+
+            displayStores(nearbyStores);
+            addStoreMarkers(nearbyStores);
+        }
+
+        // Display stores in the UI
+        function displayStores(stores) {
+            const storesList = document.getElementById('storesList');
+            
+            if (stores.length === 0) {
+                storesList.innerHTML = '<div class="text-gray-500 text-center py-4">No partner stores found along this route</div>';
+                return;
+            }
+
+            storesList.innerHTML = stores.map(store => {
+                const availableDiscount = calculateDiscount(store.discount);
+                return `
+                    <div class="flex justify-between items-center p-3 bg-lime-50 rounded-xl">
+                        <div>
+                            <div class="font-semibold text-gray-800">${store.name}</div>
+                            <div class="text-sm text-gray-600">${store.type}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-bold text-lime-600">${availableDiscount}% OFF</div>
+                            <div class="text-xs text-gray-500">Available now</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Add store markers to map
+        function addStoreMarkers(stores) {
+            stores.forEach(store => {
+                const marker = new google.maps.Marker({
+                    position: store.coords,
+                    map: map,
+                    title: store.name,
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 8,
+                        fillColor: '#84cc16',
+                        fillOpacity: 1,
+                        strokeColor: '#ffffff',
+                        strokeWeight: 2
+                    }
+                });
+
+                const infoWindow = new google.maps.InfoWindow({
+                    content: `
+                        <div class="p-2">
+                            <h3 class="font-bold">${store.name}</h3>
+                            <p class="text-sm text-gray-600">${store.type}</p>
+                            <p class="text-lime-600 font-semibold">${store.discount} discount available!</p>
+                        </div>
+                    `
+                });
+
+                marker.addListener('click', () => {
+                    infoWindow.open(map, marker);
+                });
+            });
+        }
+
+        // Calculate available discount based on current koins
+        function calculateDiscount(maxDiscount) {
+            const maxDiscountValue = parseInt(maxDiscount.replace('%', ''));
+            const koinRatio = Math.min(koins / 1000, 1); // 1000 koins = max discount
+            return Math.round(maxDiscountValue * koinRatio);
+        }
+
+        // Update step estimation
+        function updateStepEstimation(estimatedSteps) {
+            const stepCountElement = document.getElementById('stepCount');
+            stepCountElement.textContent = estimatedSteps.toLocaleString();
+            
+            // Update estimated koins (1 koin per 100 steps)
+            const estimatedKoins = Math.floor(estimatedSteps / 100);
+            koins = estimatedKoins;
+            document.getElementById('coinCount').textContent = `${estimatedKoins} Koins`;
+        }
+
+        // Connect to health data (placeholder)
+        function connectHealthData() {
+            // In a real app, this would integrate with HealthKit/Google Fit
+            alert('Health data integration would connect here!\n\nThis would sync your actual step count and convert steps to Koins for real discounts.');
+            
+            // Simulate connected data
+            stepCount = 8500 + Math.floor(Math.random() * 2000);
+            koins = Math.floor(stepCount / 100);
+            
+            document.getElementById('stepCount').textContent = stepCount.toLocaleString();
+            document.getElementById('coinCount').textContent = `${koins} Koins`;
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('planRouteBtn').addEventListener('click', planRoute);
+            document.getElementById('connectHealthBtn').addEventListener('click', connectHealthData);
+        });
+
+        // Make initMap globally available for Google Maps callback
+        window.initMap = initMap;
+    </script>
+</body>
+</html>

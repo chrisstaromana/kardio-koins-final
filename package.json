@@ -1,0 +1,16 @@
+{
+  "name": "kardio-koins",
+  "version": "1.0.0",
+  "description": "Turn Your Steps Into Real Savings - Toronto's First Fitness Rewards Platform",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'Static site - no build needed'",
+    "start": "vercel dev"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "engines": {
+    "node": "22.x"
+  }
+}

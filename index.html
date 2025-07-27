@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kardio Koins - Turn Your Steps Into Real Savings</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Maps JavaScript API -->
+    <script async defer 
+        src="https://maps.googleapis.com/maps/api/js?key=GOOGLE_MAPS_API_KEY_PLACEHOLDER&libraries=places,directions&callback=initMap">
+    </script>
+    <!-- QR Code Generator -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <style>
+        #map {
+            height: 400px;
+            width: 100%;
+            border-radius: 12px;
+        }
+        .discount-badge {
+            background: linear-gradient(135deg, #84cc16, #65a30d);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .qr-code {
+            margin: 10px auto;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            display: inline-block;
+        }
+        .route-partner {
+            border-left: 4px solid #84cc16;
+            background: linear-gradient(90deg, #f0fdf4, #ffffff);
+        }
+        .strava-button {
+            background: linear-gradient(135deg, #fc5200, #fc4c02);
+            color: white;
+            border: none;
+            padding: 16px 24px;
+            border-radius: 16px;
+            font-weight: bold;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(252, 82, 0, 0.2);
+        }
+        .strava-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(252, 82, 0, 0.3);
+        }
+        .connecting {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .verified-badge {
+            background: linear-gradient(135deg, #fc5200, #fc4c02);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="bg-lime-50 min-h-screen">
+    <div id="root">
+        <!-- Main App Container -->
+        <div class="min-h-screen bg-lime-50 p-4">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-6xl font-black text-lime-600 mb-3">Kardio Koins</h1>
+                <p class="text-xl text-gray-700 mb-2">Turn Your Steps Into Real Savings</p>
+                <p class="text-sm text-gray-600">🍁 Toronto's First Fitness Rewards Platform</p>
+            </div>
+
+            <!-- Today's Activity Card -->
+            <div class="max-w-md mx-auto mb-6">
+                <div class="bg-white rounded-3xl p-6 border-2 border-lime-200">
+                    <div class="text-center">
+                        <div class="text-5xl font-bold text-lime-500 mb-2" id="stepCount">0</div>
+                        <div class="text-gray-600 mb-4">Steps Today</div>
+                        <div class="text-2xl font-semibold mb-2" id="discountLevel">Connect Strava for real rewards!</div>
+                        <div class="text-sm text-gray-600" id="nextLevel">Sync your real workouts to unlock discounts</div>
+                        <div class="text-xs text-gray-500 mt-2" id="lastUpdated"></div>
+                        
+                        <!-- Step Progress Bar -->
+                        <div class="mt-4">
+                            <div class="w-full bg-gray-200 rounded-full h-3">
+                                <div id="progressBar" class="bg-lime-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                <span>0</span>
+                                <span>5k</span>
+                                <span>10k</span>
+                                <span>15k+</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Real Strava Connection Section -->
+            <div class="max-w-md mx-auto mb-6" id="connectSection">
+                <div class="bg-white rounded-3xl p-6 border-2 border-lime-200">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Connect Your Real Strava Data</h2>
+                    
+                    <div class="text-center mb-6">
+                        <div class="text-6xl mb-4">🔥</div>
+                        <p class="text-gray-600 mb-6">Connect your actual Strava account to automatically sync your real activities and unlock genuine discounts at Toronto businesses.</p>
+                        
+                        <button id="connectStravaBtn" class="strava-button w-full mb-4">
+                            <span class="text-2xl">🔥</span>
+                            <span>Connect with Strava</span>
+                        </button>
+                        
+                        <p class="text-xs text-gray-500">Deployed on Vercel • Real Strava API integration</p>
+                    </div>
+
+                    <!-- Connection Status -->
+                    <div id="connectionStatus" class="text-center" style="display: none;">
+                        <div class="connecting mb-4">
+                            <div class="text-orange-500 text-4xl mb-2">🔥</div>
+                            <div class="text-orange-600 font-semibold">Fetching your real Strava data...</div>
+                            <div class="text-sm text-gray-600">Using secure API endpoints</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Connected Interface (Hidden until data is loaded) -->
+            <div id="connectedInterface" style="display: none;">
+                <!-- Strava Connection Success -->
+                <div class="max-w-md mx-auto mb-6" id="stravaSuccess" style="display: none;">
+                    <div class="bg-orange-100 border-2 border-orange-300 rounded-2xl p-4 text-center">
+                        <div class="text-orange-800 font-bold mb-2">🔥 REAL STRAVA CONNECTED</div>
+                        <div class="text-sm text-orange-700" id="stravaDetails">
+                            Authentic activity data verified
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Today's Real Strava Activities -->
+                <div class="max-w-md mx-auto mb-6" id="activitiesSection" style="display: none;">
+                    <div class="bg-white rounded-3xl p-6 border-2 border-lime-200">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4">Today's Real Activities</h3>
+                        <div id="activitiesList" class="space-y-3">
+                            <!-- Real activities will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Route Planning Section -->
+                <div class="max-w-md mx-auto mb-6">
+                    <div class="bg-white rounded-3xl p-6 border-2 border-lime-200">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">Plan Your Verified Savings Route</h2>
+                        
+                        <!-- From/To Inputs -->
+                        <div class="space-y-4 mb-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">From</label>
+                                <input type="text" id="fromInput" placeholder="Enter starting location in Toronto" 
+                                       class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-lime-400 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">To</label>
+                                <input type="text" id="toInput" placeholder="Enter destination in Toronto" 
+                                       class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-lime-400 focus:border-transparent">
+                            </div>
+                        </div>
+                        
+                        <button id="planRouteBtn" 
+                                class="w-full bg-lime-500 text-white py-3 px-6 rounded-xl font-semibold hover:bg-lime-600 transition-colors">
+                            Find Route with Partner Discounts
+                        </button>
+                        
+                        <p class="text-xs text-gray-500 mt-2 text-center">
+                            Using your verified <span id="currentDiscountText">0%</span> discount 
+                            <span class="verified-badge">🔥 STRAVA VERIFIED</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Map Container -->
+                <div class="max-w-md mx-auto mb-6" id="mapSection" style="display: none;">
+                    <div class="bg-white rounded-3xl p-4 border-2 border-lime-200">
+                        <h3 class="text-xl font-bold text-gray-800 mb-3">Your Route & Real Discounts</h3>
+                        <div id="map"></div>
+                        
+                        <!-- Route Summary -->
+                        <div id="routeSummary" class="mt-4 p-3 bg-lime-50 rounded-xl">
+                            <div class="text-sm font-semibold text-gray-700">Route Summary</div>
+                            <div id="routeDetails" class="text-sm text-gray-600"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Partners Along Route -->
+                <div class="max-w-md mx-auto mb-6" id="routePartnersSection" style="display: none;">
+                    <div class="bg-white rounded-3xl p-6 border-2 border-lime-200">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4">Partner Discounts Along Your Route</h3>
+                        <div id="routePartnersList" class="space-y-3">
+                            <!-- Route partners will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reward Wallet -->
+                <div class="max-w-md mx-auto mb-6" id="walletSection">
+                    <div class="bg-white rounded-3xl p-6 border-2 border-lime-200">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4">Your Real Reward Wallet</h3>
+                        <div class="text-xs text-center mb-3">
+                            <span class="verified-badge">🔥 REAL STRAVA DATA</span>
+                        </div>
+                        <div id="availableDiscounts" class="space-y-3">
+                            <!-- Discounts will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QR Code Modal -->
+            <div id="qrModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style="display: none;">
+                <div class="bg-white rounded-3xl p-6 max-w-sm mx-4">
+                    <div class="text-center">
+                        <h3 class="text-xl font-bold mb-4" id="qrTitle">Real Strava Discount</h3>
+                        <div class="verified-badge mb-3">🔥 REAL STRAVA VERIFIED</div>
+                        <div id="qrCodeContainer" class="mb-4"></div>
+                        <p class="text-sm text-gray-600 mb-4">This discount is backed by your authentic Strava activity data</p>
+                        <button onclick="closeQRModal()" class="w-full bg-lime-500 text-white py-3 rounded-xl font-semibold">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let map;
+        let directionsService;
+        let directionsRenderer;
+        let stepCount = 0;
+        let currentDiscountLevel = 0;
+        let currentRoute = null;
+        let routePartners = [];
+        let realStravaData = null;
+
+        // Toronto partner businesses
+        const torontoPartners = [
+            {
+                name: "Balzac's Coffee",
+                category: "Coffee & Food",
+                address: "Union Station, 65 Front St W",
+                coords: { lat: 43.6447, lng: -79.3806 },
+                maxDiscount: 15,
+                description: "Premium coffee and healthy snacks"
+            },
+            {
+                name: "GoodLife Fitness",
+                category: "Fitness & Wellness", 
+                address: "100 King St W",
+                coords: { lat: 43.6481, lng: -79.3803 },
+                maxDiscount: 20,
+                description: "Complete fitness facilities"
+            },
+            {
+                name: "Loblaws",
+                category: "Groceries & Health",
+                address: "60 Carlton St (Maple Leaf Gardens)",
+                coords: { lat: 43.6629, lng: -79.3957 },
+                maxDiscount: 10,
+                description: "Fresh groceries and health products"
+            },
+            {
+                name: "Freshii",
+                category: "Healthy Food",
+                address: "180 Bay St",
+                coords: { lat: 43.6501, lng: -79.3821 },
+                maxDiscount: 15,
+                description: "Fresh, healthy meals"
+            },
+            {
+                name: "Running Room",
+                category: "Athletic Gear",
+                address: "2 Bloor St E",
+                coords: { lat: 43.6710, lng: -79.3860 },
+                maxDiscount: 20,
+                description: "Running gear and accessories"
+            },
+            {
+                name: "Booster Juice",
+                category: "Health Drinks",
+                address: "220 Yonge St (Eaton Centre)",
+                coords: { lat: 43.6544, lng: -79.3807 },
+                maxDiscount: 12,
+                description: "Fresh smoothies and protein drinks"
+            }
+        ];
+
+        // Step to discount conversion
+        function calculateDiscountLevel(steps) {
+            if (steps >= 15000) return 20;
+            if (steps >= 10000) return 15;
+            if (steps >= 8000) return 10;
+            if (steps >= 5000) return 5;
+            return 0;
+        }
+
+        // Connect to Real Strava API via Vercel endpoints
+        async function connectRealStrava() {
+            // Show connecting status
+            document.getElementById('connectionStatus').style.display = 'block';
+            document.getElementById('connectStravaBtn').style.display = 'none';
+            
+            try {
+                // Fetch real athlete data via our Vercel API
+                const athleteResponse = await fetch('/api/strava-athlete');
+                
+                if (!athleteResponse.ok) {
+                    const errorData = await athleteResponse.json();
+                    throw new Error(errorData.message || 'Failed to fetch athlete data');
+                }
+                
+                const athleteResult = await athleteResponse.json();
+                
+                // Fetch real activities via our Vercel API
+                const activitiesResponse = await fetch('/api/strava-activities');
+                
+                if (!activitiesResponse.ok) {
+                    const errorData = await activitiesResponse.json();
+                    throw new Error(errorData.message || 'Failed to fetch activities');
+                }
+                
+                const activitiesResult = await activitiesResponse.json();
+                
+                // Process real Strava data
+                const realStravaData = {
+                    athlete: athleteResult.athlete,
+                    activities: activitiesResult.activities,
+                    totalSteps: activitiesResult.total_steps
+                };
+                
+                processRealStravaData(realStravaData);
+                
+            } catch (error) {
+                console.error('Strava API Error:', error);
+                alert(`❌ Strava Connection Failed\n\n${error.message}\n\nPlease check your Strava token configuration.`);
+                
+                // Hide connecting status and show button again
+                document.getElementById('connectionStatus').style.display = 'none';
+                document.getElementById('connectStravaBtn').style.display = 'block';
+            }
+        }
+
+        // Process real Strava data
+        function processRealStravaData(data) {
+            realStravaData = data;
+            
+            // Use the total steps calculated by the API
+            const totalSteps = data.totalSteps || 0;
+            
+            updateSteps(totalSteps, 'Real Strava', data);
+            showStravaSuccess(data, data.activities);
+        }
+
+        // Show Strava connection success
+        function showStravaSuccess(data, activities) {
+            document.getElementById('stravaSuccess').style.display = 'block';
+            document.getElementById('stravaDetails').textContent = 
+                `Connected as ${data.athlete.firstname} ${data.athlete.lastname} • ${activities.length} real activities today`;
+            
+            if (activities.length > 0) {
+                document.getElementById('activitiesSection').style.display = 'block';
+                displayRealActivities(activities);
+            }
+        }
+
+        // Display real Strava activities
+        function displayRealActivities(activities) {
+            const container = document.getElementById('activitiesList');
+            
+            if (activities.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-6 text-gray-500">
+                        <p>No activities recorded today</p>
+                        <p class="text-sm mt-2">Go for a run or walk to earn discounts!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const activitiesHTML = activities.map(activity => {
+                const distanceKm = (activity.distance / 1000).toFixed(1);
+                const durationMin = Math.round(activity.moving_time / 60);
+                const steps = activity.estimated_steps || 0;
+                const activityTime = new Date(activity.start_date).toLocaleTimeString();
+                
+                const activityIcon = {
+                    'Run': '🏃‍♂️',
+                    'Walk': '🚶‍♂️', 
+                    'Hike': '🥾',
+                    'Ride': '🚴‍♂️',
+                    'Swim': '🏊‍♂️'
+                };
+                
+                return `
+                    <div class="flex justify-between items-center p-3 bg-orange-50 rounded-xl border border-orange-200">
+                        <div class="flex items-center gap-3">
+                            <div class="text-2xl">${activityIcon[activity.type] || '💪'}</div>
+                            <div>
+                                <div class="font-semibold text-gray-800">${activity.name}</div>
+                                <div class="text-sm text-gray-600">${distanceKm}km • ${durationMin} min • ${activityTime}</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-bold text-orange-600">${steps.toLocaleString()}</div>
+                            <div class="text-xs text-gray-500">steps</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = activitiesHTML;
+        }
+
+        // Update steps from real Strava data
+        function updateSteps(steps, source = 'Real Strava', data = null) {
+            stepCount = parseInt(steps);
+            currentDiscountLevel = calculateDiscountLevel(stepCount);
+            
+            updateStepDisplay();
+            showConnectedInterface();
+            
+            // Save to localStorage
+            const saveData = {
+                steps: stepCount,
+                source: source,
+                timestamp: new Date().toISOString(),
+                stravaData: data
+            };
+            localStorage.setItem('kardioKoinsRealData', JSON.stringify(saveData));
+            
+            // Show success message
+            setTimeout(() => {
+                alert(`🔥 Connected to ${source}!\n\nToday's verified steps: ${stepCount.toLocaleString()}\nDiscount level: ${currentDiscountLevel}%\n\nYour authentic Strava activity is now powering real Toronto discounts!`);
+            }, 1000);
+        }
+
+        // Load saved real data
+        function loadSavedRealData() {
+            const savedData = localStorage.getItem('kardioKoinsRealData');
+            
+            if (savedData) {
+                try {
+                    const data = JSON.parse(savedData);
+                    const savedDate = new Date(data.timestamp);
+                    const today = new Date();
+                    
+                    // Only use if from today
+                    if (savedDate.toDateString() === today.toDateString()) {
+                        stepCount = data.steps;
+                        currentDiscountLevel = calculateDiscountLevel(stepCount);
+                        realStravaData = data.stravaData;
+                        
+                        updateStepDisplay();
+                        showConnectedInterface();
+                        
+                        if (data.stravaData) {
+                            showStravaSuccess(data.stravaData, data.stravaData.activities || []);
+                        }
+                        
+                        document.getElementById('lastUpdated').textContent = 
+                            `Last synced: ${savedDate.toLocaleTimeString()} from ${data.source}`;
+                    }
+                } catch (e) {
+                    localStorage.removeItem('kardioKoinsRealData');
+                }
+            }
+        }
+
+        // Update step display
+        function updateStepDisplay() {
+            document.getElementById('stepCount').textContent = stepCount.toLocaleString();
+            
+            if (currentDiscountLevel > 0) {
+                document.getElementById('discountLevel').innerHTML = `
+                    <span class="text-lime-600">${currentDiscountLevel}% OFF</span> 
+                    <span class="text-gray-600">from real Strava data!</span>
+                `;
+            } else {
+                document.getElementById('discountLevel').textContent = "Get active on Strava to unlock verified discounts!";
+            }
+            
+            // Update next level message
+            const nextMilestone = getNextMilestone(stepCount);
+            if (nextMilestone) {
+                const stepsNeeded = nextMilestone.steps - stepCount;
+                document.getElementById('nextLevel').textContent = 
+                    `${stepsNeeded.toLocaleString()} more steps for ${nextMilestone.discount}% off`;
+            } else {
+                document.getElementById('nextLevel').textContent = "Maximum discount level reached! 🎉";
+            }
+            
+            // Update progress bar
+            const progress = Math.min((stepCount / 15000) * 100, 100);
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
+
+        // Get next milestone
+        function getNextMilestone(currentSteps) {
+            const milestones = [
+                { steps: 5000, discount: 5 },
+                { steps: 8000, discount: 10 },
+                { steps: 10000, discount: 15 },
+                { steps: 15000, discount: 20 }
+            ];
+            
+            return milestones.find(milestone => milestone.steps > currentSteps);
+        }
+
+        // Show connected interface
+        function showConnectedInterface() {
+            document.getElementById('connectSection').style.display = 'none';
+            document.getElementById('connectedInterface').style.display = 'block';
+            
+            updateCurrentDiscountText();
+            updateRewardWallet();
+            setupAutocomplete();
+        }
+
+        // Update current discount text
+        function updateCurrentDiscountText() {
+            const element = document.getElementById('currentDiscountText');
+            if (element) {
+                element.textContent = `${currentDiscountLevel}%`;
+            }
+        }
+
+        // Setup Google Places Autocomplete
+        function setupAutocomplete() {
+            if (!map) return;
+            
+            const fromInput = document.getElementById('fromInput');
+            const toInput = document.getElementById('toInput');
+
+            const options = {
+                componentRestrictions: { country: 'ca' },
+                bounds: new google.maps.LatLngBounds(
+                    new google.maps.LatLng(43.581006, -79.639219),
+                    new google.maps.LatLng(43.855469, -79.115372)
+                ),
+                strictBounds: false
+            };
+
+            const fromAutocomplete = new google.maps.places.Autocomplete(fromInput, options);
+            const toAutocomplete = new google.maps.places.Autocomplete(toInput, options);
+        }
+
+        // Plan route
+        function planRoute() {
+            const fromLocation = document.getElementById('fromInput').value;
+            const toLocation = document.getElementById('toInput').value;
+
+            if (!fromLocation || !toLocation) {
+                alert('Please enter both starting location and destination');
+                return;
+            }
+
+            const request = {
+                origin: fromLocation,
+                destination: toLocation,
+                travelMode: google.maps.TravelMode.WALKING,
+                unitSystem: google.maps.UnitSystem.METRIC,
+            };
+
+            directionsService.route(request, (result, status) => {
+                if (status === 'OK') {
+                    directionsRenderer.setDirections(result);
+                    currentRoute = result;
+                    
+                    document.getElementById('mapSection').style.display = 'block';
+                    document.getElementById('routePartnersSection').style.display = 'block';
+                    
+                    updateRouteSummary(result);
+                    findPartnersAlongRoute(result);
+                } else {
+                    alert('Could not display directions: ' + status);
+                }
+            });
+        }
+
+        // Update route summary
+        function updateRouteSummary(result) {
+            const route = result.routes[0];
+            const leg = route.legs[0];
+            
+            document.getElementById('routeDetails').innerHTML = `
+                <div>Distance: ${leg.distance.text}</div>
+                <div>Walking time: ${leg.duration.text}</div>
+                <div>Partners with ${currentDiscountLevel}% discount: ${routePartners.length}</div>
+            `;
+        }
+
+        // Find partners along route
+        function findPartnersAlongRoute(result) {
+            routePartners = torontoPartners.slice(0, 4);
+            displayRoutePartners();
+            addRoutePartnerMarkers();
+        }
+
+        // Display route partners
+        function displayRoutePartners() {
+            const container = document.getElementById('routePartnersList');
+            
+            const partnersHTML = routePartners.map(partner => {
+                const availableDiscount = Math.min(currentDiscountLevel, partner.maxDiscount);
+                return `
+                    <div class="route-partner p-4 rounded-xl">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <div class="font-semibold text-gray-800">${partner.name}</div>
+                                <div class="text-sm text-gray-600">${partner.category}</div>
+                                <div class="text-xs text-lime-600 mt-1">📍 Along your route</div>
+                            </div>
+                            <div class="text-right">
+                                ${availableDiscount > 0 ? 
+                                    `<div class="discount-badge">${availableDiscount}% OFF</div>
+                                     <button onclick="showQRCode('${partner.name}', ${availableDiscount})" 
+                                             class="text-xs text-lime-600 hover:text-lime-700 mt-1">
+                                        Get QR Code
+                                     </button>` :
+                                    `<div class="text-xs text-gray-500">More activity needed</div>`
+                                }
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = partnersHTML;
+        }
+
+        // Add partner markers to map
+        function addRoutePartnerMarkers() {
+            routePartners.forEach(partner => {
+                const availableDiscount = Math.min(currentDiscountLevel, partner.maxDiscount);
+                
+                const marker = new google.maps.Marker({
+                    position: partner.coords,
+                    map: map,
+                    title: partner.name,
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 12,
+                        fillColor: availableDiscount > 0 ? '#84cc16' : '#9ca3af',
+                        fillOpacity: 1,
+                        strokeColor: '#ffffff',
+                        strokeWeight: 3
+                    }
+                });
+
+                const infoWindow = new google.maps.InfoWindow({
+                    content: `
+                        <div class="p-3">
+                            <h3 class="font-bold text-lg">${partner.name}</h3>
+                            <p class="text-sm text-gray-600 mb-2">${partner.description}</p>
+                            <p class="text-lime-600 font-semibold mb-2">
+                                ${availableDiscount > 0 ? 
+                                    `Your ${availableDiscount}% real Strava discount!` : 
+                                    `Get more active for up to ${partner.maxDiscount}% off`
+                                }
+                            </p>
+                            ${availableDiscount > 0 ? 
+                                `<button onclick="showQRCode('${partner.name}', ${availableDiscount})" 
+                                         class="mt-2 bg-lime-500 text-white px-4 py-2 rounded-lg text-sm font-semibold w-full">
+                                    Get Real Discount QR
+                                 </button>` : ''}
+                        </div>
+                    `
+                });
+
+                marker.addListener('click', () => {
+                    infoWindow.open(map, marker);
+                });
+            });
+        }
+
+        // Update reward wallet
+        function updateRewardWallet() {
+            const walletContainer = document.getElementById('availableDiscounts');
+            
+            if (currentDiscountLevel === 0) {
+                walletContainer.innerHTML = `
+                    <div class="text-center py-6 text-gray-500">
+                        <p class="text-lg mb-2">🏃‍♂️ Get active on Strava!</p>
+                        <p>Record 5,000 steps to unlock 5% off at Toronto partners</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const availableOffers = torontoPartners
+                .slice(0, 6)
+                .filter(partner => currentDiscountLevel > 0)
+                .map(partner => {
+                    const availableDiscount = Math.min(currentDiscountLevel, partner.maxDiscount);
+                    return `
+                        <div class="flex justify-between items-center p-4 bg-lime-50 rounded-xl border border-lime-200">
+                            <div>
+                                <div class="font-semibold text-gray-800">${partner.name}</div>
+                                <div class="text-sm text-gray-600">${partner.category}</div>
+                                <div class="verified-badge text-xs mt-1">🔥 REAL STRAVA</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="discount-badge">${availableDiscount}% OFF</div>
+                                <button onclick="showQRCode('${partner.name}', ${availableDiscount})" 
+                                        class="text-xs text-lime-600 hover:text-lime-700 mt-1">
+                                    Get QR Code
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            walletContainer.innerHTML = availableOffers;
+        }
+
+        // Show QR Code with real Strava verification
+        function showQRCode(partnerName, discount) {
+            const qrModal = document.getElementById('qrModal');
+            const qrContainer = document.getElementById('qrCodeContainer');
+            const qrTitle = document.getElementById('qrTitle');
+            
+            qrTitle.textContent = `${discount}% off at ${partnerName}`;
+            
+            // Include real Strava athlete ID in QR
+            const athleteId = realStravaData ? realStravaData.athlete.id || 'demo' : 'demo';
+            const qrData = `KARDIO-REAL-STRAVA-${Date.now()}-${partnerName.replace(/\s+/g, '')}-${discount}PCT-${stepCount}STEPS-${athleteId}`;
+            const qr = qrcode(0, 'M');
+            qr.addData(qrData);
+            qr.make();
+            
+            qrContainer.innerHTML = `<div class="qr-code">${qr.createImgTag(4)}</div>`;
+            qrModal.style.display = 'flex';
+        }
+
+        // Close QR modal
+        function closeQRModal() {
+            document.getElementById('qrModal').style.display = 'none';
+        }
+
+        // Initialize Google Map
+        function initMap() {
+            const toronto = { lat: 43.6532, lng: -79.3832 };
+            
+            map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 13,
+                center: toronto
+            });
+
+            directionsService = new google.maps.DirectionsService();
+            directionsRenderer = new google.maps.DirectionsRenderer({
+                suppressMarkers: false,
+                polylineOptions: {
+                    strokeColor: "#84cc16",
+                    strokeWeight: 4
+                }
+            });
+            directionsRenderer.setMap(map);
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSavedRealData();
+            
+            document.getElementById('connectStravaBtn').addEventListener('click', connectRealStrava);
+            document.getElementById('planRouteBtn').addEventListener('click', planRoute);
+        });
+
+        // Make functions globally available
+        window.initMap = initMap;
+        window.showQRCode = showQRCode;
+        window.closeQRModal = closeQRModal;
+    </script>
+</body>
+</html>
